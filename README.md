@@ -1,2 +1,2 @@
-# ns-reroot-enter
+# nsreroot
 Runs a command in a private re-created "/" with user permissions and additional mounts
