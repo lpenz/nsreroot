@@ -1,0 +1,33 @@
+---
+name: CI
+on: push
+jobs:
+  build:
+    strategy:
+        matrix:
+          cc: [ g++, clang++ ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - uses: docker://lpenz/ghaction-cmake:latest
+        with:
+          cxx: ${{ matrix.cc }}
+  clang-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - uses: docker://lpenz/ghaction-cmake:latest
+        with:
+          analyzer: clang-format
+  clang-analyzers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - uses: docker://lpenz/ghaction-cmake:latest
+        with:
+          analyzer: clang-tidy
+  omnilint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - uses: docker://lpenz/omnilint:latest
