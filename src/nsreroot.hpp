@@ -10,11 +10,15 @@
 #ifndef NSREROOT_H_INCLUDED
 #define NSREROOT_H_INCLUDED
 
+namespace nsreroot {
+
 /**
  * \brief Runs a command in a private re-created "/" with user
  *        permissions and additional mounts
  * \return true if ok, false if error.
  */
 bool nsreroot();
+
+}  // namespace nsreroot
 
 #endif /* NSREROOT_H_INCLUDED */

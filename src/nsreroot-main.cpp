@@ -9,10 +9,8 @@
 
 #include "nsreroot.hpp"
 
-/****************************************************************************/
-
-int
-main() {
-    nsreroot();
+auto
+main() -> int {
+    nsreroot::nsreroot();
     return 0;
 }

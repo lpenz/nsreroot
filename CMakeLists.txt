@@ -4,18 +4,22 @@
 
 cmake_minimum_required(VERSION 3.5)
 
-project(nsreroot)
+project(nsreroot CXX)
 
 include(GNUInstallDirs)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 if(CMAKE_COMPILER_IS_GNUCXX)
-  set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -W")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -W")
 endif(CMAKE_COMPILER_IS_GNUCXX)
 
 # Main executable:
 
 add_executable(nsreroot src/nsreroot.cpp src/nsreroot-main.cpp)
 
+target_link_libraries(nsreroot stdc++fs)
 target_link_libraries(nsreroot -static)
 
 # Install:
