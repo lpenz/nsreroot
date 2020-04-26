@@ -7,6 +7,7 @@ RUN set -e -x; \
     apt-get install -y --no-install-recommends \
         cmake pkg-config make gcc g++ \
         clang clang-tidy clang-format \
+        cppcheck iwyu \
         locales util-linux git
 
 # setup sudo and locales
@@ -15,4 +16,11 @@ RUN set -e -x; \
     sed -i '/pam_rootok.so$/aauth sufficient pam_permit.so' /etc/pam.d/su
 ENV LC_ALL=en_US.UTF-8
 
-CMD cmake . && make VERBOSE=1
+CMD set -e -x; \
+        cmake \
+        '-DCMAKE_CXX_CLANG_TIDY=clang-tidy' \
+        '-DCMAKE_CXX_CPPCHECK=cppcheck;--enable=all;-inconclusive' \
+        '-DCMAKE_CXX_INCLUDE_WHAT_YOU_USE=iwyu' \
+        .; \
+        make VERBOSE=2
+
