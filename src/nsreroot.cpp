@@ -9,12 +9,15 @@
 
 #include "nsreroot.hpp"
 
-#include <climits>
-#include <cstdlib>
-#include <cstring>
-#include <filesystem>
-#include <iostream>
-#include <optional>
+#include <cerrno>        // for errno
+#include <climits>       // for PATH_MAX
+#include <cstdlib>       // for mkdtemp
+#include <cstring>       // for strncpy
+#include <filesystem>    // for path, temp_directory_path, operator<<, remov...
+#include <iostream>      // for char_traits, operator<<, basic_ostream, cout
+#include <sstream>       // for basic_stringbuf<>::int_type, basic_stringbuf...
+#include <string>        // for allocator, operator+, basic_string, string
+#include <system_error>  // for generic_category, error_code
 
 namespace nsreroot {
 
@@ -24,7 +27,7 @@ class Mktmpdir {
 
    public:
     Mktmpdir() {
-        /* We choose to use mkdtemp instead of rolling our own thing here.
+        /* We chose to use mkdtemp instead of rolling our own thing here.
          * That means doing some bare C acrobatics: */
         // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
         char tmpdir_template[PATH_MAX];
