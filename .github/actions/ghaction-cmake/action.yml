@@ -1,0 +1,46 @@
+---
+name: ghaction-cmake
+description: 'Build and test using cmake'
+branding:
+  icon: 'compass'
+  color: 'blue'
+inputs:
+  directory:
+    description: 'cd to this directory before building'
+    default: ''
+  dependencies:
+    description: 'Dependencies as Debian packages to install'
+    default: ''
+  cc:
+    description: 'C Compiler'
+    default: 'gcc'
+  cflags:
+    description: 'CFLAGS'
+    default: ''
+  cxx:
+    description: 'C++ Compiler'
+    default: 'g++'
+  cxxflags:
+    description: 'CXXFLAGS'
+    default: ''
+  cmakeflags:
+    description: 'Flags for cmake'
+    default: ''
+  ctest_skip:
+    description: 'If true, skip ctest'
+    default: 'false'
+  ctestflags:
+    description: 'Flags for ctest'
+    default: ''
+  install_skip:
+    description: 'If true, skip installation'
+    default: 'false'
+  coverage:
+    description: 'Send coverage data to this service (only codecov supported)'
+    default: ''
+  analyzer:
+    description: 'Analyzer to use on files after exporting commands'
+    default: ''
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
