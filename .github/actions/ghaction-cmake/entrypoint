@@ -6,7 +6,7 @@ if [ -n "$INPUT_DEPENDENCIES" ]; then
     }
 else
     function install_dependencies {
-        :
+        : no dependencies specified
     }
 fi
 
@@ -19,66 +19,70 @@ if [ -n "${INPUT_COVERAGE}" ]; then
     CXXFLAGS+=" --coverage"
 fi
 
-ctest=( ctest )
-if [ -n "$INPUT_CTESTFLAGS" ]; then
-    ctest+=( "$INPUT_CTESTFLAGS" )
-fi
-
 cmake=( cmake )
 if [ -n "$INPUT_CMAKEFLAGS" ]; then
     IFS=' ' read -r -a cmakeflags <<< "$INPUT_CMAKEFLAGS"
     cmake+=( "${cmakeflags[@]}" )
 fi
 
-set -e -x
+if [ -n "$INPUT_ANALYZER" ]; then
+    INPUT_CTEST_SKIP=true
+    INPUT_INSTALL_SKIP=true
+    if [ "$INPUT_ANALYZER" = "cppcheck" ]; then
+        cmake+=( "-DCMAKE_CXX_CPPCHECK=cppcheck" )
+    elif [ "$INPUT_ANALYZER" = "iwyu" ]; then
+        cmake+=( "-DCMAKE_CXX_INCLUDE_WHAT_YOU_USE=iwyu" )
+    elif [ "$INPUT_ANALYZER" = "clang-tidy" ]; then
+        cmake+=( "-DCMAKE_CXX_CLANG_TIDY=clang-tidy" )
+    else
+        echo "Error: unknown analyzer $INPUT_ANALYZER" >&2
+        exit 1
+    fi
+fi
+
+if [ "$INPUT_CTEST_SKIP" = "true" ]; then
+    ctest=( : test phase skipped )
+else
+    ctest=( ctest )
+    if [ -n "$INPUT_CTESTFLAGS" ]; then
+        IFS=' ' read -r -a ctestflags <<< "$INPUT_CTESTFLAGS"
+        ctest+=( "${ctestflags[@]}" )
+    fi
+fi
+
+if [ "$INPUT_INSTALL_SKIP" = "true" ]; then
+    install=( : install phase skipped )
+else
+    cmake+=( "-DCMAKE_INSTALL_PREFIX=/tmp/_install" )
+    install=( "make" "install" )
+fi
 
 if [ -n "$INPUT_DIRECTORY" ]; then
     mkdir -p "$INPUT_DIRECTORY"
     cd "$INPUT_DIRECTORY"
 fi
 
-if [ -n "$INPUT_ANALYZER" ]; then
-    if [ "$INPUT_ANALYZER" = "cppcheck" ]; then
-        install_dependencies
-        cmake "-DCMAKE_CXX_CPPCHECK=cppcheck" .
-    elif [ "$INPUT_ANALYZER" = "iwyu" ]; then
-        install_dependencies
-        cmake "-DCMAKE_CXX_INCLUDE_WHAT_YOU_USE=iwyu" .
-    elif [ "$INPUT_ANALYZER" = "clang-tidy" ]; then
-        install_dependencies
-        cmake "-DCMAKE_CXX_CLANG_TIDY=clang-tidy" .
-    elif [ "$INPUT_ANALYZER" = "clang-format" ]; then
-        find "$PWD" \( -name '*.[ch]' -o -name '*.cc' -o -name '*.[ch]pp' \) -exec clang-format -i {} +
-        git diff --exit-code
+set -e -x
+
+install_dependencies
+export CC="$CC"
+export CFLAGS="$CFLAGS"
+export CXX="$CXX"
+export CXXFLAGS="$CXXFLAGS"
+
+SRCDIR="$PWD"
+mkdir /tmp/_build /tmp/_install
+cd /tmp/_build
+"${cmake[@]}" "$SRCDIR"
+make VERBOSE=1
+"${ctest[@]}"
+"${install[@]}"
+
+if [ -n "${INPUT_COVERAGE}" ]; then
+    if [ "$INPUT_COVERAGE" = codecov ]; then
+        bash <(curl -s https://codecov.io/bash)
     else
-        echo "Error: unknown analyzer $INPUT_ANALYZER" >&2
+        echo "Error: unknown coverage service $INPUT_COVERAGE" >&2
         exit 1
-    fi
-else
-    install_dependencies
-    export CC="$CC"
-    export CFLAGS="$CFLAGS"
-    export CXX="$CXX"
-    export CXXFLAGS="$CXXFLAGS"
-
-    SRCDIR="$PWD"
-    mkdir /tmp/_build /tmp/_install
-    cd /tmp/_build
-    "${cmake[@]}" -DCMAKE_INSTALL_PREFIX=/tmp/_install "$SRCDIR"
-    make VERBOSE=1
-    if ! "$INPUT_CTEST_SKIP"; then
-        "${ctest[@]}"
-    fi
-    if ! "$INPUT_INSTALL_SKIP"; then
-    make install
-    fi
-
-    if [ -n "${INPUT_COVERAGE}" ]; then
-        if [ "$INPUT_COVERAGE" = codecov ]; then
-            bash <(curl -s https://codecov.io/bash)
-        else
-            echo "Error: unknown coverage service $INPUT_COVERAGE" >&2
-            exit 1
-        fi
     fi
 fi

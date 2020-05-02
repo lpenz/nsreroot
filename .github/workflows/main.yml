@@ -16,16 +16,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - uses: ./.github/actions/ghaction-cmake
-        with:
-          analyzer: clang-format
+      - uses: DoozyX/clang-format-lint-action@v0.5
   clang-analyzers:
+    strategy:
+        matrix:
+          analyzer: [ clang-tidy, iwyu, cppcheck ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
       - uses: ./.github/actions/ghaction-cmake
         with:
-          analyzer: clang-tidy
+          analyzer: ${{ matrix.analyzer }}
   omnilint:
     runs-on: ubuntu-latest
     steps:

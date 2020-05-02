@@ -21,6 +21,9 @@
 
 namespace nsreroot {
 
+
+
+
 class Mktmpdir {
    private:
     std::filesystem::path tmpdir_name_;
@@ -31,7 +34,6 @@ class Mktmpdir {
          * That means doing some bare C acrobatics: */
         // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays,hicpp-avoid-c-arrays,modernize-avoid-c-arrays)
         char tmpdir_template[PATH_MAX];
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay,hicpp-no-array-decay)
         strncpy(tmpdir_template, path_template().c_str(),
                 sizeof tmpdir_template - 1);
         tmpdir_template[sizeof tmpdir_template - 1] = 0;
@@ -69,7 +71,8 @@ class Mktmpdir {
 };
 
 auto
-nsreroot() -> bool {
+nsreroot() -> bool
+{
     Mktmpdir tmpdir;
     std::cout << "tmpdir " << tmpdir.tmpdir_name() << "\n";
     return true;
