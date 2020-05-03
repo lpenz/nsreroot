@@ -1,88 +1,131 @@
-#!/bin/bash
+#!/usr/bin/env python3
 
-if [ -n "$INPUT_DEPENDENCIES" ]; then
-    function install_dependencies {
-        su - -c "apt-get install --no-install-recommends -y $INPUT_DEPENDENCIES"
-    }
-else
-    function install_dependencies {
-        : no dependencies specified
-    }
-fi
+import re
+import sys
+import os
+import subprocess
+import yaml
 
-CC="$INPUT_CC"
-CFLAGS="$INPUT_CFLAGS"
-CXX="$INPUT_CXX"
-CXXFLAGS="$INPUT_CXXFLAGS"
-if [ -n "${INPUT_COVERAGE}" ]; then
-    CFLAGS+=" --coverage"
-    CXXFLAGS+=" --coverage"
-fi
 
-cmake=( cmake )
-if [ -n "$INPUT_CMAKEFLAGS" ]; then
-    IFS=' ' read -r -a cmakeflags <<< "$INPUT_CMAKEFLAGS"
-    cmake+=( "${cmakeflags[@]}" )
-fi
+class Entrypoint(object):
+    def __init__(self, extenv):
+        self.extenv = extenv
+        self.env = {}
+        self.cmd_deps = None
+        self.cmd_cmake = None
+        self.cmd_make = None
+        self.cmd_test = None
+        self.cmd_install = None
 
-if [ -n "$INPUT_ANALYZER" ]; then
-    INPUT_CTEST_SKIP=true
-    INPUT_INSTALL_SKIP=true
-    if [ "$INPUT_ANALYZER" = "cppcheck" ]; then
-        cmake+=( "-DCMAKE_CXX_CPPCHECK=cppcheck" )
-    elif [ "$INPUT_ANALYZER" = "iwyu" ]; then
-        cmake+=( "-DCMAKE_CXX_INCLUDE_WHAT_YOU_USE=iwyu" )
-    elif [ "$INPUT_ANALYZER" = "clang-tidy" ]; then
-        cmake+=( "-DCMAKE_CXX_CLANG_TIDY=clang-tidy" )
-    else
-        echo "Error: unknown analyzer $INPUT_ANALYZER" >&2
-        exit 1
-    fi
-fi
+    def runcmd(self, cmd):
+        print('+ {}'.format(' '.join(cmd)))
+        sys.stdout.flush()
+        env = dict(self.extenv)
+        env.update(self.env)
+        p = subprocess.Popen(cmd, env=env)
+        p.wait()
+        if p.returncode != 0:
+            print('> Error {} while running {}'.format(p.returncode,
+                                                       ' '.join(cmd)))
+            return False
+        return True
 
-if [ "$INPUT_CTEST_SKIP" = "true" ]; then
-    ctest=( : test phase skipped )
-else
-    ctest=( ctest )
-    if [ -n "$INPUT_CTESTFLAGS" ]; then
-        IFS=' ' read -r -a ctestflags <<< "$INPUT_CTESTFLAGS"
-        ctest+=( "${ctestflags[@]}" )
-    fi
-fi
+    def run(self):
+        phases = {
+            'deps': self.cmd_deps,
+            'cmake': self.cmd_cmake,
+            'make': self.cmd_make,
+            'test': self.cmd_test,
+            'install': self.cmd_install,
+        }
+        for phasename, phasecmd in phases.items():
+            if not phasecmd:
+                print('- Skipping {} phase'.format(phasename))
+            elif not self.runcmd(phasecmd):
+                return False
+        return True
 
-if [ "$INPUT_INSTALL_SKIP" = "true" ]; then
-    install=( : install phase skipped )
-else
-    cmake+=( "-DCMAKE_INSTALL_PREFIX=/tmp/_install" )
-    install=( "make" "install" )
-fi
+    def main(self):
+        # Dependencies, ignore presets
+        if self.extenv.get('INPUT_DEPENDENCIES'):
+            self.cmd_deps.extend([
+                'su', '-', '-c',
+                'apt-get install --no-install-recommends -y {}'.format(
+                    self.extenv['INPUT_DEPENDENCIES'])
+            ])
 
-if [ -n "$INPUT_DIRECTORY" ]; then
-    mkdir -p "$INPUT_DIRECTORY"
-    cd "$INPUT_DIRECTORY"
-fi
+        # Directory, ignore presets
+        if self.extenv.get('INPUT_DIRECTORY'):
+            d = self.extenv['INPUT_DIRECTORY']
+            print('+ ' + d)
+            os.chdir(d)
 
-set -e -x
+        # Defaults, affected by presets:
+        self.cmd_deps = None
+        self.cmd_cmake = [
+            'cmake', '.', '-DCMAKE_INSTALL_PREFIX=/tmp/_install'
+        ] + self.extenv.get('INPUT_CMAKEFLAGS', '').split(' ')
+        self.cmd_make = ['make', 'VERBOSE=1']
+        self.cmd_test = ['ctest', '.']
+        self.cmd_install = ['make', 'install']
 
-install_dependencies
-export CC="$CC"
-export CFLAGS="$CFLAGS"
-export CXX="$CXX"
-export CXXFLAGS="$CXXFLAGS"
+        # Presets, overriding or complementing defaults:
+        if self.extenv.get('INPUT_PRESET'):
+            self.cmd_install = None
+            preset = self.extenv['INPUT_PRESET']
+            if preset.startswith('clang-sanitize-'):
+                sanitizer = re.match('clang-sanitize-(.*)', preset).group(1)
+                self.cmd_cmake.append('-DCMAKE_C_COMPILER=clang')
+                self.cmd_cmake.append('-DCMAKE_CXX_COMPILER=clang++')
+                for flag in ['C', 'CXX', 'LINKER']:
+                    self.cmd_cmake.append(
+                        '-DCMAKE_{}_FLAGS="-fno-omit-frame-pointer -fsanitize={}"'
+                        .format(flag, sanitizer))
+            elif preset == 'valgrind':
+                self.cmd_test.append('-DExperimentalMemCheck')
+            else:
+                # Static analysis presets
+                if preset == 'clang-tidy':
+                    self.cmd_cmake.append('-DCMAKE_CXX_CLANG_TIDY=clang-tidy')
+                elif preset == 'cppcheck':
+                    self.cmd_cmake.append('-DCMAKE_CXX_CPPCHECK=cppcheck')
+                elif preset == 'iwyu':
+                    self.cmd_cmake.append(
+                        '-DCMAKE_CXX_INCLUDE_WHAT_YOU_USE=iwyu')
+                self.cmd_test = None
 
-SRCDIR="$PWD"
-mkdir /tmp/_build /tmp/_install
-cd /tmp/_build
-"${cmake[@]}" "$SRCDIR"
-make VERBOSE=1
-"${ctest[@]}"
-"${install[@]}"
+        # The other inputs that override presets:
 
-if [ -n "${INPUT_COVERAGE}" ]; then
-    if [ "$INPUT_COVERAGE" = codecov ]; then
-        bash <(curl -s https://codecov.io/bash)
-    else
-        echo "Error: unknown coverage service $INPUT_COVERAGE" >&2
-        exit 1
-    fi
-fi
+        # Environment:
+        if self.extenv.get('env'):
+            moreenv = yaml.loads(self.extenv['env'])
+            for k, v in moreenv.items():
+                self.env[k] = v
+        for arg in ['CC', 'CFLAGS', 'CXX', 'CXXFLAGS']:
+            extarg = 'INPUT_{}'.format(arg)
+            if self.extenv.get(extarg):
+                print('+ export {}={}'.format(arg, self.extenv[extarg]))
+                self.env[arg] = self.extenv[extarg]
+
+        # ctest
+        if self.extenv.get('INPUT_TEST_COMMAND'):
+            self.cmd_test = self.extenv.get('INPUT_TEST_COMMAND',
+                                            '').split(' ')
+
+        # Install
+        if self.extenv.get('INPUT_INSTALL_COMMAND'):
+            self.cmd_install = self.extenv.get('INPUT_INSTALL_COMMAND',
+                                               '').split(' ')
+
+        # Run
+        return self.run()
+
+
+def main():
+    entrypoint = Entrypoint(os.environ)
+    if not entrypoint.main():
+        sys.exit(1)
+
+
+if __name__ == '__main__':
+    main()

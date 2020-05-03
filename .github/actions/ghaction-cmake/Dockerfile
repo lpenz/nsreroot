@@ -5,6 +5,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN set -x -e; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
+        # infra
+        python3-yaml \
         # build
         cmake pkg-config make gcc g++ \
         # coverage report

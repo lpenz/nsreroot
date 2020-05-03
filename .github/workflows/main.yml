@@ -12,21 +12,37 @@ jobs:
       - uses: ./.github/actions/ghaction-cmake
         with:
           cxx: ${{ matrix.cc }}
-  clang-format:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-      - uses: DoozyX/clang-format-lint-action@v0.5
-  clang-analyzers:
-    strategy:
-        matrix:
-          analyzer: [ clang-tidy, iwyu, cppcheck ]
+  envtest:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
       - uses: ./.github/actions/ghaction-cmake
         with:
-          analyzer: ${{ matrix.analyzer }}
+          env: "[ 'CXX': 'clang++' ]"
+  clang-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - uses: DoozyX/clang-format-lint-action@v0.5
+  presets:
+    strategy:
+        matrix:
+          preset: 
+            - clang-tidy
+            - iwyu
+            - cppcheck
+            - clang-sanitize-address
+            - clang-sanitize-memory
+            - clang-sanitize-undefined
+            - clang-sanitize-dataflow
+            - clang-sanitize-safe-stack
+            - valgrind
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - uses: ./.github/actions/ghaction-cmake
+        with:
+          preset: ${{ matrix.preset }}
   omnilint:
     runs-on: ubuntu-latest
     steps:
