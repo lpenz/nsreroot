@@ -9,21 +9,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - uses: docker://lpenz/ghaction-cmake:latest
+      - uses: docker://lpenz/ghaction-cmake:v0.6
         with:
           cxx: ${{ matrix.cc }}
   clang-format:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - uses: docker://lpenz/ghaction-cmake:latest
+      - uses: docker://lpenz/ghaction-cmake:v0.6
         with:
           analyzer: clang-format
   clang-analyzers:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - uses: docker://lpenz/ghaction-cmake:latest
+      - uses: docker://lpenz/ghaction-cmake:v0.6
         with:
           analyzer: clang-tidy
   omnilint:
