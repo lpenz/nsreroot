@@ -13,13 +13,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -Wextra -W")
 
-# Main executable:
+# Main targets
 
 add_executable(nsreroot src/nsreroot.cpp src/nsreroot-main.cpp)
 
 target_link_libraries(nsreroot stdc++fs)
 target_link_libraries(nsreroot -static)
 
-# Install:
+# Install
 
 install(TARGETS nsreroot DESTINATION bin)
+
+# Tests
+
+include(CTest)
+
+add_test(NAME test_help COMMAND ./nsreroot --help)
+

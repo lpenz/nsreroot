@@ -64,7 +64,7 @@ class Mktmpdir {
 
     static auto
     path_template() -> std::filesystem::path {
-        return std::filesystem::temp_directory_path() /= "nsreroot.XXXXX";
+        return std::filesystem::temp_directory_path() /= "nsreroot.XXXXXX";
     }
 };
 
