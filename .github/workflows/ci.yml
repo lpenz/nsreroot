@@ -2,22 +2,27 @@
 name: CI
 on: [ push, pull_request ]
 jobs:
+  omnilint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: docker://lpenz/omnilint:v0.2
   coverage:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
-      - uses: docker://lpenz/ghaction-cmake:v0.7
+      - uses: actions/checkout@v2
+      - uses: docker://lpenz/ghaction-cmake:v0.12
         with:
           preset: coverage
-      - uses: codecov/codecov-action@v0.1
+      - uses: coverallsapp/github-action@master
         with:
-          fail_ci_if_error: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: lcov.info
   tests:
     strategy:
         matrix:
           preset:
             - cppcheck
-            - iwyu
             - clang-tidy
             - install
             - clang-sanitizer-address
@@ -28,17 +33,12 @@ jobs:
             - valgrind
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
-      - uses: docker://lpenz/ghaction-cmake:v0.7
+      - uses: actions/checkout@v2
+      - uses: docker://lpenz/ghaction-cmake:v0.12
         with:
           preset: ${{ matrix.preset }}
   clang-format:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@master
+      - uses: actions/checkout@v2
       - uses: DoozyX/clang-format-lint-action@v0.5
-  omnilint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@master
-      - uses: docker://lpenz/omnilint:latest

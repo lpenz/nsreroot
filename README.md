@@ -1,4 +1,5 @@
-![CI](https://github.com/lpenz/nsreroot/workflows/CI/badge.svg)
+[![CI](https://github.com/lpenz/nsreroot/actions/workflows/ci.yml/badge.svg)](https://github.com/lpenz/nsreroot/actions/workflows/ci.yml)
+[![coveralls](https://coveralls.io/repos/github/lpenz/nsreroot/badge.svg?branch=main)](https://coveralls.io/github/lpenz/nsreroot?branch=main)
 
 # nsreroot
 

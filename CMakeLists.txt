@@ -28,5 +28,5 @@ install(TARGETS nsreroot DESTINATION bin)
 
 include(CTest)
 
-add_test(NAME test_help COMMAND ./nsreroot --help)
+add_test(NAME test_help COMMAND ./nsreroot)
 
