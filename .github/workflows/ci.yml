@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: docker://lpenz/ghaction-cmake:v0.12
+      - uses: docker://lpenz/ghaction-cmake:0.15
         with:
           preset: coverage
       - uses: coverallsapp/github-action@master
@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: docker://lpenz/ghaction-cmake:v0.12
+      - uses: docker://lpenz/ghaction-cmake:0.15
         with:
           preset: ${{ matrix.preset }}
   clang-format:
